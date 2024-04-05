@@ -125,8 +125,8 @@ plot(r,error)
 
 #Conclusion: after the first 7 factors there is not much explanatory power left
 plotC.1 <- svd(V)
-saveRDS(plotC.1, file = "plotC.1")
-plot(plotC.1$d[1:40])
+saveRDS(plotC.1, file = "plotC1")
+plot(plotC1$d[1:40])
 
 #Choose same method Lee and use rank. Set amount of Factors to 7.
 nfactors <- 7

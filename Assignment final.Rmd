@@ -1,0 +1,134 @@
+---
+title: "Text Analytics Assignment 1: Disneyland"
+author: "Robbert Batenburg, Amber Dalhuisen, Floris van Haarst & Marijn van der Werff"
+date: "05-04-2024"
+output: 
+  pdf_document:
+    toc_depth: 2
+    number_sections: TRUE
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+setwd("C:/Users/marij/OneDrive/Documenten/Data Science Master/Text Mining")
+knitr::opts_chunk$set(echo = TRUE)
+library(magick)
+
+```
+
+
+# Data
+For our analysis, we used a data set from [Kaggle](https://www.kaggle.com/datasets/arushchillar/disneyland-reviews) containing reviews on the Disneyland theme parks in Paris, California and Hong Kong posted on Tripadvisor. The data set contains 42,656 reviews, and additionally contains information on the year and month the review was posted, the location of the reviewer and which branch the review is about. In order to prepare the data for analysis, several preprocessing steps were undertaken. Numbers and certain text elements such as times were replaced by placeholders. Stop words were removed and all words were stemmed to facilitate analysis. Any duplicate reviews were removed and very infrequent words were removed.
+
+# Visualisations
+The first part of the data visualization analysis consisted of performing Principal Component Analysis (PCA). PCA is performed to find a small set of components to explain the most variance in the data. For text data, the dimensions are represented by words that occur together frequently within that dimension. In this analysis, four principal components were used, which explain roughly 28.7% of the explained variance. This number is relatively low for PCA, which is caused by the nature of the data (text), as it is very hard for the model to predict precise words. To visualize the results of the PCA, biplots were created. The biplots show two things: words that occur together often, and words that contribute to a certain dimension (principle component). To further dive into the reviews, the rating (1-5 stars) was also taken into consideration by visualizing the individual reviews per subgroup (see Appendix A.3 and A.4). For this visualization, a random sample of 500 reviews was taken into consideration.
+
+Dimension 1: Appendix A.1 shows how the text and the individual reviews relate to the first and second principal component. Dimension one has a strong negative correlation to the word *time*, meaning it does not contribute to this dimension. As seen in the figure, dimension one has a lot of words that correlate, yet not a few that stand out. Words that seem important often mention a park (Orlando, California, Hong kong) or an opinion associated with the park (*pretti*, *adventur*, *excit*, *friendli*, *favorit*, *awesom*), mostly positive. When looking at Appendix A.3, it is seen that the groups per rating are not very different from each other. Only ratings with a two star review are slightly negatively correlated to the first dimension.
+
+Dimension 2: Dimension two has two important terms: *disnei* and *park*, both positively correlating to the second component. Words that appear close seem to talk about the expenses and seem to be less positive (*miss*, *leave*, *expens*, *cost*). However, this is not seen in Appendix A.3, where are groups are roughly equally correlated to the second dimension. 
+
+Dimension 3: As shown in Appendix A.2, dimension three is characterized mainly by the word *ride*, as it has a the biggest contribution both in color and on the x axis. Other words that have a positive correlation to the third dimension and are close together are *pretty*, *space*, *magic* and *mountain*, relating to the rides and the athmosphere in the the park. As seen in Appendix A.4, words with 1-star reviews are slightly negatively correlated to this dimension, meaning they occur less in the reviews.
+
+Dimension 4: In Appendix A.2, dimension four is characterized by a few words, where *park*, *dai* and *time* are the most important. They appear close to words such as *plan*, *ticket*, *hotel*, *adventure* and *attract*, which all have a positive correlation with the fourth principal component. Putting these words together, the reviews seem to be about disneyland in general, speaking about the planning of their trip. There is no observable difference between the ratings in groups for this dimension. Words that relate to both the third and fourth dimension are *wait*, *line*, *fast*, *enjoi*, *busi* and *walk*, that mention the experience of the crowds in the park.
+
+Although some conclusion can be drawn from the figures, the results are quite vague and easily misinterpreted. There are very few clear connections between the dimensions and the disneyland text data.
+
+
+The second part of this analysis is to perform Mulit-Dimensional Scaling (MDS). MDS aims at putting words at positions that reflect their distances. This way, it becomes clear which words are clustered together in reviews. MDS works by transforming co-occurances to distances. Then, the results are visualized in a map to be able to find themes within the clusters (see Appendix A.5).
+
+The left lower corner represent the negative associations with Disney. It includes words like *disappoint*, *complaint*, *bad*, *terror* and *broke*. They seem to be connected to issues regarding wheelchairs, bathrooms, transactions, and waiting time. 
+
+The upper left corner represents food in Disney. These reviews mention lunch, cafes, restaurants, drinks and breakfast and are connected to opinions such as *brilliant*, *cheap*, *expensive*, *warm* and *clean*. Therefore, the reviews seem to be relatively positive with regards to food and drinks.
+
+The lower right corner represents planning to go to Disney. Words like *summer*, *vacation* and *July* are related to crowds and lines, and *tuesday* seems to be a *popular* day. Other words relate to *downloads*, an *app*, *canceling* and a *pass*.
+
+The last mentionable cluster of words is in the upper right corner. These reviews relate to the themery and attractions in Disneyland. They include words such as *jungle*, *kingdom*, *railroad*, *attraction*, *size*, *firework* and *manor* and are connected to words like *scary*, *thrill*, *relax*, *favorite*, *fun* and *beautiful*. All words related to this theme are positive, meaning visitors had a good experience related to the park attractions and decor itself. 
+
+
+# Sentiment Analysis
+Sentiment analysis is defined as the process of deriving the emotional intent of an author from text (Kwartler, 2017). Sentiment and polarity scores can be used to analyze the comments that are made in positive or negative reviews. Based on these findings, recommendations can be made on elements that are positively reviewed and subsequently negatively reviewed. 
+
+The polarity function accounts for negation and amplifier words, which means words are not merely being classified as positive, e.g., 1, or negative, e.g., -1. When using this function, the polarity word is identified within each sentence. Taking a pool of the four previous and two following words, negations and amplifiers are identified. Amplifiers add a weight while negation words subtract weight. The raw polarity score is then divided by the square root of the total amount of words in the sentence, resulting in the overall sentiment of the sentence.
+
+To illustrate this, in Appendix B a total of six figures are shown. Appendix B.1 shows that there are more positive reviews, e.g., reviews with a rating higher than or equal to four, than negative reviews, e.g., reviews with a rating lower than or equal to two.  The density of the positive reviews lies as 0.1 compared to -0.1 for the negative reviews. Appendix B.2 shows the density of the reviews based on a sentiment analysis where no negation words or amplifiers are identified. This figure shows that the average sentiment of the reviews is around 0.2, which is slightly higher compared to the ratings. 
+
+To investigate how negations and amplifications affect the identified sentiment, the settings for the negation list and amplification list were adjusted. More accurately, the first five words from the negation list were used, with the goal of identifying what would happen if the list of negation words was much smaller. The results of this analysis are shown in Appendix B.3 which shows a narrow density plot. This indicates that the values are more concentrated. This means that there is a higher likelihood of observing values within this range. The same approach was used for amplifiers, where the first five words from the amplificiation words dataset were used. These results are shown in Appendix B.4, which are distributed much wider than in Appendix B.3. This indicates a higher variability. Additionally, whereas Appendix B.3 shows a slightly lower polarity compared to Appendix B.2, Appendix B.4 shows a slightly higher polarity. 
+
+Based on these results, it was concluded that identifying more negation words results in a lower polarity of the review and subsequently identifying more amplifiers results in a higher polarity of the review. This leads to the final figure, namely Appendix B.5 that shows the sentiment word cloud of the scaled polarity score and Term Frequency Inverse Document Frequency (TFIDF) weighted TDM. If a word appears often in reviews, this leads to the assumption that it is important. However, if a word appears in all reviews, it may not be very insightful. TFIDF therefore accounts for words that appear frequently, ultimately resulting in a word cloud with only insightful words. A distinction is made between positive and negative words. The negative word that was used most frequently is *worst* that pops out directly. This indicates that the overall sentiment around Disneyland is very negative based on the reviews. There are also some positive words to say about Disneyland such as *outstanding* and *stunning* although the sentiment behind *cleaner* and *divided* is negotiable.
+
+Some recommendations that can be drawn from this analysis are that although the overall sentiment behind the reviews is slightly more positive than negative, Disneyland Hong Kong should make significant improvements to their park. Research indicates that people want to be nice and acknowledge effort, which could explain why the average sentiment is still higher. This indicates that people say at least one positive thing in this review. 
+
+Some limitations to this research are that sarcasm cannot easily be identified in the text. Furthermore, Jocker's (2017) dictionary was used for this sentiment analysis but the analysis mainly applies to Disneyland in Hong Kong. This means that certain words could have a different meaning than is identified in this dictionary.
+
+
+As an addition to this research, an emotion classification of the research was made. This analysis is based on Plutchik’s wheel of emotion that states eight emotions, namely anger, fear, sadness, disgust, surprise, anticipation, trust and joy. Appendix B.6 shows the words commonly associated with these emotions in the reviews. The emotions that are represented most frequently are disgust, sadness and anger. These emotions show visitors were very unhappy with their visit and went home disappointed. 
+
+# Latent topics
+Lastly, we have build a non-negative Matrix factorization (NMF) model to uncover latent topics within our reviews. Due to computational constraints, we used a subset of 2500 reviews for this analysis. We used the stemmed data set that has been cleaned from punctuation's. We removed uncommon words which appeared in less than 1% of the reviews. This resulted in the removal of 220 of the 698 different words. A NMF model extracts latent topics from a matrix, called a document-term matrix. First it decomposes the document-term matrix into a basis matrix and a coefficient matrix. The basis matrix include words that correspond to certain topics. The coefficient matrix include reviews that correspond to certain topics. We can use NMF to gain some general insights in common topics among the reviews of Disneyland.
+
+We have made some choices when modeling the NMF algorithm. First, we had to determine which method we wanted to use to split our document-term matrix into basis and coefficient matrices. We used the "Lee" method, as this one performed relatively well among multiple metrics. the Lee model showed the lowest score on residuals and a relative high score on the silhouette coefficient. This indicates the lee model has less error and is better able to cluster reviews and words together based on the different topics. 
+
+Secondly, we also had to decide on the number of topics the model should consider. The plot in Appendix C.1 shows how much of the residuals are explained by each additional topics considered in the model. It shows that the second added topic explains relatively a lot of the residual error. However, only using 2 factors for the analysis would not be very useful, as it results in very limited possibilities to gain insights. The seventh topic shows a slightly larger difference in explained residual error compared to all other topics afterwards, which is why we decide to only consider the first 7 factors for the NMF model.  
+
+The multiple plots in Appendix C.2 show the 5 most important words for each of the 7 topics. The first topic contains the words *Disneyland*, *Hong*, *Kong*, *staff* and variations of *experience*. Comments containing this topic share general experience of Disneyland in Hong Kong and its staff. The fifth topic is very similar, but uses the word of Disney more general instead of Disneyland and uses the word *world* instead of *staff*. This topic seems to be more focused on the brand Disney in general. The second topic describes Disneyland as a theme park. The third topic is focusing on attractions and general experiences such as waiting time in the queues and the food. The fourth topic is about the duration of the visit, about the tickets and passes and about the characters in the parade. The sixth topic is specifically focused on time, usually involving waiting time in lines and queues. The last topic contain words about children who visited Disneyland. As enjoy is an important word in this topic, is seem that kids are usually positive about the attractions, the food and their visit in general. 
+
+## References
+Kwartler, T. (2017). Text mining in practice with R. John Wiley & Sons.
+
+## Appendix A
+
+```{r pressure, echo=FALSE}
+figure1 <- readRDS("Biplot12")
+figure2 <- readRDS("Biplot34")
+figure3 <- readRDS("groups12")
+figure4 <- readRDS("groups34")
+figure5 <- image_read("MDS.png")
+
+plot(figure1) 
+plot(figure2) 
+plot(figure3) 
+plot(figure4) 
+plot(figure5) 
+```
+
+
+## Appendix B
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.show = "hold", out.width = "50%"}
+Figure_1 <- readRDS("Figure_1.rds")
+Figure_2 <- readRDS("Figure_2.rds")
+
+plot(Figure_1)
+plot(Figure_2)
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.show = "hold", out.width = "50%"}
+Figure_3 <- readRDS("Figure_3.rds")
+Figure_4 <- readRDS("Figure_4.rds")
+
+plot(Figure_3)
+plot(Figure_4)
+
+```
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE, out.height = "50%"}
+
+Figure_5 <- image_read("Figure_5.png")
+Figure_6 <- image_read("Figure_6.png")
+
+plot(Figure_5)
+plot(Figure_6)
+
+
+```
+
+## Appendix C
+
+```{r, echo = FALSE, message = FALSE, warnings = FALSE, out.height = "50%"}
+plotC.1 <- readRDS("plotC1")
+plotC.2 <- readRDS("plotC.2")
+plot(plotC.1$d[1:20])
+plot(plotC.2)
+
+```
+

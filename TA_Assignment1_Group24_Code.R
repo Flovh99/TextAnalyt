@@ -22,7 +22,10 @@ library(sentimentr)
 library(qdap)
 library(wordcloud)
 library(syuzhet)
-
+library(NMF)
+library(tidyr)
+library(mgsub)
+library(slam)
 
 ##### PART 1
 
@@ -585,3 +588,130 @@ colnames(all.tdm.m) <- levels(reviews_df$emotions)
 png("Figure_6.png", width = 800, height = 600)
 Figure_6 <- comparison.cloud(all.tdm.m, title.size = 1.5, title.bg.colors = "lightblue", main = "Word Cloud of Emotion Classification")
 dev.off()
+
+##### PART 4
+
+
+######### NMF ################
+#take subset for efficiency
+saved <- disney_unique
+disney_unique <- saved[1:2500,]
+
+#Create a Corpus object and get DTM (and pre-process the text)
+corpus <- Corpus(VectorSource(unlist(disney_unique[, "Review_Text"])))
+
+# preprocess and create DTM
+#Stemming and Stopwords removal has already been done
+dtm <- DocumentTermMatrix(corpus, control = list(stemming = FALSE, stopwords = FALSE, minWordLength = 3, removeNumbers = TRUE, removePunctuation = TRUE))
+dim(dtm)
+
+#Show some statistics on the frequency of words, also count number of words with freq<25
+summary(col_sums(dtm))
+lowFreq <- (col_sums(dtm)<25)
+sum(lowFreq)
+
+
+#Filter low frequency words (and remove empty docs)
+dtm <- dtm[, !lowFreq]
+dtm <- dtm[row_sums(dtm) > 0,]
+summary(col_sums(dtm))
+n <- nrow(dtm)
+dim(dtm)
+#saved_dtm <- dtm
+#dtm <- saved_dtm
+
+# Get current data as a term-document-matrix
+maxcols <- ncol(dtm)
+V <- t(as.matrix(dtm[,1:maxcols]))  # NMF is usually defined on term-document-matrix
+
+#Obtain NMF with different methods (for 2 factors) using smart starting values
+nfactors <- 2
+#nmf_multi <- nmf(V, nfactors, method=list("snmf/l","snmf/r","brunet","lee"), seed="nndsvd", .options='vt')
+#saveRDS(nmf_multi, file = "nmf_multi")
+
+nmf_multi <- readRDS(file = "nmf_multi")
+plot(nmf_multi)
+compare(nmf_multi)
+
+
+#Compare fits of the different NMF solutions
+for (m in nmf_multi){
+  print(mean((V-fitted(m))^2))
+  plot(m)
+} 
+
+#Use ood method with different ranks
+#nmf_rank = list()
+#for (n in seq(2,14,2)){
+#  nmf <- nmf(V, rank=n, method=list("lee"), seed="nndsvd", .options='vt')
+#  fit <- fitted(nmf)
+#  mean(abs(V-fit))
+#  nmf_rank = append(nmf_rank, nmf)
+#}
+
+#saveRDS(nmf_rank, file = "nmf_rank")
+
+nmf_rank <- readRDS(file = "nmf_rank")
+
+compare(nmf_rank)
+
+
+#Make plot of error as a function of the number of factors (error of course decreases)
+r = c()
+error = c()
+for (m in nmf_rank){
+  r = rbind(r, ncol(m@fit@W))
+  error = rbind(error, mean((V-fitted(m))^2))
+}
+plot(r,error)
+
+#Conclusion: after the first 7 factors there is not much explanatory power left
+plotC.1 <- svd(V)
+saveRDS(plotC.1, file = "plotC1")
+plot(plotC1$d[1:40])
+
+#Choose same method Lee and use rank. Set amount of Factors to 7.
+nfactors <- 7
+#res <- nmf(V, rank=nfactors, method="lee", seed="nndsvd", .options='v')
+#save_res <- res
+#saveRDS(save_res, file = "save_res")
+save_res <- readRDS("save_res")
+res <- save_res
+W <- basis(res)
+H <- coef(res)
+
+#Visualize the basis and coefficient matrices
+heatmap(W, Colv=NA, main="W",scale="row")
+heatmap(H, Rowv=NA, main="H",scale="column")
+
+#Show W and H for a selection of documents and terms
+
+heatmap(H[,1:15], Colv=NA, Rowv=NA, main="H[,1:15]",scale="column")
+
+
+heatmap(W[apply(W, 1, max) > 0,], Colv=NA, main="W, selected words with highest scores",scale="none")
+
+#Select terms loading high for each factor
+relW <- W/(rep(1,nrow(W))%*%t(col_sums(W)))
+Wtable <- data.frame(topic= c(1:nfactors), t(relW))
+Wtable <- gather(Wtable, term, score, -topic)
+
+text_top_terms <- Wtable %>%
+  group_by(topic) %>%
+  top_n(10, score) %>%
+  ungroup() %>%
+  arrange(topic, -score)
+
+plot_topics <- text_top_terms %>%
+  filter(topic <= 7) %>%
+  mutate(term = reorder_within(term, score, topic)) %>%
+  ggplot(aes(term, score, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip()+
+  scale_x_reordered()
+
+#saveRDS(plot_topics, file = "PlotC.2")
+#Code to find (rescaled) topic weights per document
+docScores <- H/(rep(1,nfactors) %*% t(col_sums(H)))
+docScores[,1:10]

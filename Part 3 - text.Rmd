@@ -31,8 +31,15 @@ Figure_1 <- readRDS("Figure_1.rds")
 Figure_2 <- readRDS("Figure_2.rds")
 Figure_3 <- readRDS("Figure_3.rds")
 Figure_4 <- readRDS("Figure_4.rds")
-Figure_5 <- readRDS("Figure_5.rds")
-Figure_6 <- readRDS("Figure_6.rds")
+Figure_5 <- image_read("Figure_5.png")
+Figure_6 <- image_read("Figure_6.png")
+
+plot(Figure_1)
+plot(Figure_2)
+plot(Figure_3)
+plot(Figure_4)
+plot(Figure_5)
+plot(Figure_6)
 
 ```
 

@@ -25,7 +25,7 @@ The multiple plots in Appendix C.2 show the 5 most important words for each of t
 ## Appendix C
 
 ```{r}
-plotC.1 <- readRDS("plotC.1")
+plotC.1 <- readRDS("plotC1")
 
 plot(plotC.1$d[1:20])
 

@@ -1,0 +1,333 @@
+---
+title: "Part 3 - code"
+output: pdf_document
+date: "2024-04-05"
+---
+
+```{r}
+### PART 3
+setwd("/Users/amberdalhuisen/Documents/Jaar 5/Blok 4/Text Analytics/Assignment 1")
+
+# Load packages
+options(stringsAsFactors = F)
+library(tm)
+library(dplyr)
+library(tidytext)
+library(sentimentr)
+library(tidyverse)
+library(qdap)
+library(ggthemes)
+library(wordcloud)
+library(syuzhet)
+
+
+# Load data
+disney_part34 <- read.csv(file = "DisneylandReviews.csv", sep = ",", header = TRUE)
+disney_part34$Branch <- as.factor(disney_part34$Branch)
+
+disney_part34$Description <- disney_part34$Review_Text
+
+disney_part34 <- disney_part34[1:2500, ]
+
+# - - - CREATE DATASET WITHOUT STEMMING AND INCLUDING PUNCTUATION
+
+# Remove error messages in text
+disney_part34 <- disney_part34[nchar(disney_part34$Description) > 50, ]
+
+# Convert date to date object
+disney_part34$Year_Month <- as.Date(paste0(disney_part34$Year_Month, "-01"))
+
+Sys.setlocale('LC_ALL','C') # set aspects of the internationalization of the program
+
+reviews_df <- disney_part34 %>%
+  rename(
+    Review = Review_Text
+  )
+
+# Replace numbers and certain characters
+reviews_df$Description <- as.character(reviews_df$Description)  %>% 
+  tolower() %>% 
+  {gsub(":( |-|o)*\\("," SADSMILE ", .)} %>%        # Find :( or :-( or : ( or :o(
+  {gsub(":( |-|o)*\\)"," HAPPYSMILE ", .)} %>%      # Find :) or :-) or : ) or :o)
+  {gsub("(\"| |\\$)-+\\.-+"," NUMBER", .)} %>%      # Find numbers
+  {gsub("([0-9]+:)*[0-9]+ *am"," TIME_AM", .)} %>%  # Find time AM
+  {gsub("([0-9]+:)*[0-9]+ *pm"," TIME_PM", .)} %>%  # Find time PM
+  {gsub("-+:-+","TIME", .)} %>%                     # Find general time
+  {gsub("\\$ ?[0-9]*[\\.,]*[0-9]+"," DOLLARVALUE ", .)} %>%   # Find Dollar values
+  {gsub("[0-9]*[\\.,]*[0-9]+"," NUMBER ", .)} %>%  # Find remaining numbers
+  {gsub("-"," ", .)} %>%                           # Remove all -
+  {gsub("&"," and ", .)} %>%                       # Find general time
+  {gsub("\"+"," ", .)} %>%                         # Remove all "
+  {gsub("\\|+"," ", .)} %>%                        # Remove all |
+  {gsub("_+"," ", .)} %>%                          # Remove all _
+  {gsub(";+"," ", .)} %>%                          # Remove excess ;
+  {gsub(" +"," ", .)} %>%                          # Remove excess spaces
+  {gsub("\\.+","\\.", .)}                          # Remove excess .
+
+
+### - - - DATASET CREATED
+
+
+### - - - OBTAIN TOTAL SENTIMENT - Frequency of positive/negative words (after removing stopwords)
+
+# Remove stopwords from Review_text and count the number of times each word occurs
+all_words <- reviews_df[,] %>%
+  unnest_tokens("Description", output = "word") %>%
+  anti_join(stop_words, by = "word") %>% # Remove stopwords
+  count(word, sort = TRUE) %>% # count number of times each word occurs
+  filter(n>100) # only do for words that occur more than 100 times
+
+# Determine sentiment score
+all_words$sentiment <- sentiment(all_words$word , lexicon::hash_sentiment_huliu)$sentiment
+
+
+# Create plot
+all_words %>%
+  filter(n > 100) %>% # only do for words that occur more than 250 times
+  filter(sentiment != 0) %>% # remove words with a sentiment score of 0
+  mutate(n = ifelse(sentiment < 0, -n, n)) %>% # create negative count for words with negative sentiment score
+  mutate(word = reorder(word, n)) %>% # apply sorting 
+  mutate(Sentiment = ifelse(sentiment >0 , "Postive","Negative")) %>% # give labels to positive and negative sentiment scores
+  ggplot(aes(word, n, fill = Sentiment)) + # Create a bar plot
+  geom_col() +
+  coord_flip() +
+  labs(y = "Contribution to \"total\" sentiment", x = "Word (min freq = 250)")
+
+
+
+### - - - SENTIMENT PER SENTENCE
+
+# Cut the reviews into list of sentences
+sentences <- get_sentences(reviews_df$Description)
+
+# Determine sentiment scores of the sentences 
+sentence_scores <- sentiment(get_sentences(reviews_df$Description), amplifier.weight = 0.0, but.weight = 0.0)
+
+# Make a dataframe of all sentences
+all_sentences <- as.data.frame(unlist(sentences[])) 
+colnames(all_sentences) = "sentences" # Give name to the column
+
+# Add sentiment score to the sentences
+all_sentences$sentiment <- sentence_scores$sentiment 
+
+# Give sentences an id
+all_sentences$sentence_id <- c(1:dim(all_sentences)[1]) 
+
+
+
+
+### - - - CREATE SENTIMENT FUNCTION
+# Obtain SENTIMENT per REVIEW
+reviews_df$sentiment <- sentiment_by(reviews_df$Description,  amplifier.weight = 0.0, but.weight = 0.0, n.before = 4, lexicon::hash_sentiment_huliu)$ave_sentiment
+
+Figure_2 <- ggplot(reviews_df, aes(x = sentiment, y = ..density..)) + theme_gdocs() +
+  geom_histogram(binwidth = .25, fill = "darkred", colour = "grey", size = .2) + 
+  geom_density(size = 0.75)
+saveRDS(Figure_2, "Figure_2.rds")
+
+pos_comments <- subset(reviews_df$Description, reviews_df$sentiment > 0)
+neg_comments <- subset(reviews_df$Description, reviews_df$sentiment < 0)
+
+pos_terms <- paste(pos_comments,collapse = " ")
+neg_terms <- paste(neg_comments,collapse = " ")
+all_terms <- c(pos_terms,neg_terms)
+all_corpus <- VCorpus(VectorSource(all_terms))
+
+# TDM using common preprocessing steps, explore the impact of matrix weighting
+sentiment <- TermDocumentMatrix(all_corpus, control=
+                                list(weighting=weightTfIdf, removePunctuation = TRUE,
+                                     stopwords=stopwords(kind='en')))
+sentiment_matrix <- as.matrix(sentiment)
+colnames(sentiment_matrix) <- c('positive','negative')
+
+# Construct comparison cloud, use scaling of the polarity scores
+comparison.cloud(sentiment_matrix, max.words=30,
+                 colors=c('darkgreen','darkred'))
+
+
+
+### EXTRA
+# Get positive reviews: reviews with rating 4 or higher
+positive <- reviews_df %>% filter(reviews_df[,"Rating"] >= 4)
+
+# Get negative reviews: reviews with rating 2 or lower
+negative <- reviews_df %>% filter(reviews_df[,"Rating"] <=2)
+
+# Determine the average sentiment scores in positive reviews and negative reviews
+cat("sentiment", mean(negative[, "sentiment"]), " ", mean(positive[, "sentiment"]), "\n")
+
+
+Figure_1 <- ggplot( ,aes(sentiment)) +
+  geom_density(aes(fill = "Happy"),   data = positive, alpha = 0.5) +
+  geom_density(aes(fill = "Unhappy"), data = negative, alpha = 0.5) +
+  scale_colour_manual("Sentiment", values = c("green", "red"), aesthetics = "fill")
+saveRDS(Figure_1, file = 'Figure_1.rds')
+
+
+
+
+
+### - - - CREATE POLARITY FUNCTION - Approximate the sentiment (polarity) of text by grouping variable(s).
+# Experiment with the settings of the negation.list and amplification.list arguments to identify how this affects 
+# the identified sentiment
+
+data("negation.words")
+data("amplification.words")
+data("deamplification.words")
+
+negation.adj <- c("ain't", "aren't", "can't", "couldn't", "didn't", "doesn't")
+amplification.adj <- c("acute", "acutely", "certain", "certainly", "colossal", "colossally")
+
+
+
+# Adjusted negation words, what happens with the identified sentiment?
+d_polarity_negation <- polarity(reviews_df$Description, negators = negation.adj)
+Figure_3 <- ggplot(d_polarity_negation$all, aes(x = polarity, y = ..density..)) + theme_gdocs() +
+  geom_histogram(binwidth = .25, fill = "darkred", colour = "grey", size = .2) + 
+  geom_density(size = 0.75)
+saveRDS(Figure_3, file = "Figure_3.rds")
+
+# Adjusted amplification words, what happens with the identified sentiment?
+d_polarity_ampl <- polarity(reviews_df$Description, amplifiers = amplification.adj)
+Figure_4 <- ggplot(d_polarity_ampl$all, aes(x = polarity, y = ..density..)) + theme_gdocs() +
+  geom_histogram(binwidth = .25, fill = "darkred", colour = "grey", size = .2) + 
+  geom_density(size = 0.75)
+saveRDS(Figure_4, file = 'Figure_4.rds')
+
+# Polarity with DEFAULT settings / complete lists 
+d_polarity <- polarity(reviews_df$Description)
+ggplot(d_polarity$all, aes(x = polarity, y = ..density..)) + theme_gdocs() +
+  geom_histogram(binwidth = .25, fill = "darkred", colour = "grey", size = .2) + 
+  geom_density(size = 0.75)
+
+
+# Polarity scores are not centered at 0 which means that on average each review 
+# has at least one positive word in it, there is a social norm for people to be nice
+# acknowledge effort, or find sth to be positive about --> grade inflation = people are
+# mixing positive words alongside negative ones 
+
+
+# If you want the comparison cloud not to be scaled, remove "scale()" but the output will be less informative. 
+reviews_df$polarity <- scale(d_polarity$all$polarity)
+
+pos_comments <- subset(reviews_df$Description, reviews_df$polarity > 0)
+neg_comments <- subset(reviews_df$Description, reviews_df$polarity < 0)
+
+
+
+# Collapse pos_comments and neg_comments into 2 distinct documents. This creates a single
+# character vector = all.terms. Then VCorpus contains 2 documents with all the positive
+# and negative reviews
+
+pos_terms <- paste(pos_comments,collapse = " ")
+neg_terms <- paste(neg_comments,collapse = " ")
+all_terms <- c(pos_terms,neg_terms)
+all_corpus <- VCorpus(VectorSource(all_terms))
+
+# TDM using common preprocessing steps, explore the impact of matrix weighting
+all_tdm <- TermDocumentMatrix(all_corpus, control=
+                              list(weighting=weightTfIdf, removePunctuation = TRUE,
+                                   stopwords=stopwords(kind='en')))
+all_tdm_matrix <- as.matrix(all_tdm)
+colnames(all_tdm_matrix) <- c('positive','negative')
+
+# Construct comparison cloud, use scaling of the polarity scores 
+Figure_5 <- comparison.cloud(all_tdm_matrix, max.words=25,
+                 colors=c('darkgreen','darkred'))
+saveRDS(Figure_5, file = 'Figure_5.rds')
+
+# Final results!
+# Compare the previous output to the polarity function where the negation words 
+# and amplification words have been adjusted
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Classify emotions
+# Anger, fear, sadness, disgust, surprise, joy
+# Main function in the package calculates a score for each of these emotional states and then selects
+# the specific emotion with the highest score from the 6
+
+
+# Creating NRC emotion keys
+nrc_sentiment_key <- syuzhet:::nrc %>%
+  dplyr::filter(
+    sentiment %in% c('positive', 'negative'),
+    lang == 'english'
+  ) %>% # Use positive and negative sentiments
+  dplyr::select(-lang) %>% # Select language
+  mutate(value = ifelse(sentiment == 'negative', value * -1, value)) %>% # Multiply negative sentiment scores by -1
+  dplyr::group_by(word) %>%
+  dplyr::summarize(y = mean(value)) %>% # Get mean
+  sentimentr::as_key()
+
+nrc_anger_key <- syuzhet:::nrc %>%
+  dplyr::filter(
+    sentiment %in% c('anger'),
+    lang == 'english'
+  ) %>% # Use sentiments: anger
+  dplyr::select(-lang) %>% # Select language
+  mutate(value = ifelse(sentiment == 'negative', value * -1, value)) %>%
+  dplyr::group_by(word) %>%
+  dplyr::summarize(y = mean(value)) %>% # Get mean
+  sentimentr::as_key()
+
+nrc_joy_key <- syuzhet:::nrc %>%
+  dplyr::filter(
+    sentiment %in% c('joy'),
+    lang == 'english'
+  ) %>% # Use sentiments: joy
+  dplyr::select(-lang) %>% # Select language
+  mutate(value = ifelse(sentiment == 'negative', value * -1, value)) %>%
+  dplyr::group_by(word) %>%
+  dplyr::summarize(y = mean(value)) %>% # Get mean
+  sentimentr::as_key()
+
+
+
+
+# Get emotion classification of all reviews
+reviews_classified <- as.data.frame(get_nrc_sentiment(reviews_df[,"Description"]))
+reviews_classified[,"Description"] <- reviews_df[,"Description"]
+
+max_col_index <- max.col(reviews_classified[, 1:8])
+max_col_name <- colnames(reviews_classified)[max_col_index]
+reviews_classified$best_fit <- max_col_name
+
+
+ggplot(reviews_classified, aes(x=best_fit)) +
+  geom_bar(aes(y=..count.., fill=best_fit)) +
+  labs(x="emotion categories",
+       y="Disneyland HongKong")+theme_gdocs() +
+  theme(legend.position="none")
+
+
+reviews_df$emotions <-(reviews_classified$best_fit)
+emotion.reviews <-split(reviews_df$Description,
+                        reviews_df$emotions)
+emotion.reviews <-lapply(emotion.reviews,
+                         paste,collapse=" ")
+emotion.reviews <-do.call(c,emotion.reviews)
+emotion.reviews <-VCorpus(VectorSource(
+  emotion.reviews))
+all.tdm <-TermDocumentMatrix(emotion.reviews,control=
+                               list(weighting=weightTfIdf, removePunctuation = TRUE,
+                                    stopwords=stopwords(kind='en')))
+
+all.tdm.m <- as.matrix(all.tdm)
+reviews_df$emotions <- factor(reviews_df$emotions)
+colnames(all.tdm.m) <- levels(reviews_df$emotions)
+Figure_6 <- comparison.cloud(all.tdm.m, title.size = 1.5, title.bg.colors = "lightblue")
+saveRDS(Figure_6, file = 'Figure_6.rds')
+```
+

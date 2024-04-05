@@ -11,6 +11,7 @@ urlcolor: blue
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(magick)
 
 ```
 
@@ -54,7 +55,8 @@ The multiple plots in Appendix C.2 show the 5 most important words for each of t
 
 
 ## Appendix B
-```{r, echo = F, message = F, fig.show = "hold", out.width = "50%"}
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.show = "hold", out.width = "50%"}
 Figure_1 <- readRDS("Figure_1.rds")
 Figure_2 <- readRDS("Figure_2.rds")
 
@@ -62,7 +64,7 @@ plot(Figure_1)
 plot(Figure_2)
 ```
 
-```{r, echo = F, message = F, fig.show = "hold", out.width = "50%"}
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.show = "hold", out.width = "50%"}
 Figure_3 <- readRDS("Figure_3.rds")
 Figure_4 <- readRDS("Figure_4.rds")
 
@@ -71,7 +73,7 @@ plot(Figure_4)
 
 ```
 
-```{r, echo = F, message = F, fig.show = "hold", out.width = "50%"}
+```{r, echo = FALSE, warning = FALSE, message = FALSE, out.height = "50%"}
 
 Figure_5 <- image_read("Figure_5.png")
 Figure_6 <- image_read("Figure_6.png")
@@ -81,12 +83,14 @@ plot(Figure_6)
 
 
 ```
+
 ## Appendix C
 
-```{r, echo = F, message = F, fig.show = "hold", out.width = "50%"}
+```{r, echo = FALSE, message = FALSE, warnings = FALSE, out.height = "50%"}
 plotC.1 <- readRDS("plotC1")
 plotC.2 <- readRDS("plotC.2")
 plot(plotC.1$d[1:20])
 plot(plotC.2)
 
 ```
+

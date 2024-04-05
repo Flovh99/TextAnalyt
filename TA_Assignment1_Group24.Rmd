@@ -24,6 +24,29 @@ For our analysis, we used a data set from [Kaggle](https://www.kaggle.com/datase
 In order to prepare the data for analysis, several preprocessing steps were undertaken. Numbers and certain text elements such as times were replaced by placeholders. Stop words were removed and all words were stemmed to facilitate analysis. Any duplicate reviews were removed and very infrequent words were removed.
 
 # Visualisations
+The first part of the data visualization analysis consisted of performing Principal Component Analysis (PCA). PCA is performed to find a small set of components to explain the most variance in the data. For text data, the dimensions are represented by words that occur together frequently within that dimension. In this analysis, four principal components were used, which explain roughly 28.7% of the explained variance. This number is relatively low for PCA, which is caused by the nature of the data (text), as it is very hard for the model to predict precise words. To visualize the results of the PCA, biplots were created. The biplots show two things: words that occur together often, and words that contribute to a certain dimension (principle component). To further dive into the reviews, the rating (1-5 stars) was also taken into consideration by visualizing the individual reviews per subgroup (see figures 3 and 4). For this visualization, a random sample of 500 reviews was taken into consideration.
+
+Dimension 1: Figure 1 shows how the text and the individual reviews relate to the first and second principal component. Dimension one has a strong negative correlation to the word *time*, meaning it does not contribute to this dimension. As seen in the figure, dimension one has a lot of words that correlate, yet not a few that stand out. Words that seem important often mention a park (Orlando, California, Hong kong) or an opinion associated with the park (*pretti*, *adventur*, *excit*, *friendli*, *favorit*, *awesom*), mostly positive. When looking at figure 3, it is seen that the groups per rating are not very different from each other. Only ratings with a two star review are slightly negatively correlated to the first dimension.
+
+Dimension 2: Dimension two has two important terms: *disnei* and *park*, both positively correlating to the second component. Words that appear close seem to talk about the expenses and seem to be less positive (*miss*, *leave*, *expens*, *cost*). However, this is not seen in figure 3, where are groups are roughly equally correlated to the second dimension. 
+
+Dimension 3: As shown in figure 2, dimension three is characterized mainly by the word *ride*, as it has a the biggest contribution both in color and on the x axis. Other words that have a positive correlation to the third dimension and are close together are *pretty*, *space*, *magic* and *mountain*, relating to the rides and the athmosphere in the the park. As seen in figure 4, words with 1-star reviews are slightly negatively correlated to this dimension, meaning they occur less in the reviews.
+
+Dimension 4: In figure 2, dimension four is characterized by a few words, where *park*, *dai* and *time* are the most important. They appear close to words such as *plan*, *ticket*, *hotel*, *adventure* and *attract*, which all have a positive correlation with the fourth principal component. Putting these words together, the reviews seem to be about disneyland in general, speaking about the planning of their trip. There is no observable difference between the ratings in groups for this dimension. Words that relate to both the third and fourth dimension are *wait*, *line*, *fast*, *enjoi*, *busi* and *walk*, that mention the experience of the crowds in the park.
+
+Although some conclusion can be drawn from the figures, the results are quite vague and easily misinterpreted. There are very few clear connections between the dimensions and the disneyland text data.
+
+
+The second part of this analysis is to perform Mulit-Dimensional Scaling (MDS). MDS aims at putting words at positions that reflect their distances. This way, it becomes clear which words are clustered together in reviews. MDS works by transforming co-occurances to distances. Then, the results are visualized in a map to be able to find themes within the clusters (see Figure 5).
+
+The left lower corner represent the negative associations with Disney. It includes words like *disappoint*, *complaint*, *bad*, *terror* and *broke*. They seem to be connected to issues regarding wheelchairs, bathrooms, transactions, and waiting time. 
+
+The upper left corner represents food in Disney. These reviews mention lunch, cafes, restaurants, drinks and breakfast and are connected to opinions such as *brilliant*, *cheap*, *expensive*, *warm* and *clean*. Therefore, the reviews seem to be relatively positive with regards to food and drinks.
+
+The lower right corner represents planning to go to Disney. Words like *summer*, *vacation* and *July* are related to crowds and lines, and *tuesday* seems to be a *popular* day. Other words relate to *downloads*, an *app*, *canceling* and a *pass*.
+
+The last mentionable cluster of words is in the upper right corner. These reviews relate to the themery and attractions in Disneyland. They include words such as *jungle*, *kingdom*, *railroad*, *attraction*, *size*, *firework* and *manor* and are connected to words like *scary*, *thrill*, *relax*, *favorite*, *fun* and *beautiful*. All words related to this theme are positive, meaning visitors had a good experience related to the park attractions and decor itself. 
+
 
 # Sentiment Analysis
 Sentiment analysis is defined as the process of deriving the emotional intent of an author from text (Book). Sentiment and polarity scores can be used to analyze the comments that are made in positive or negative reviews. Based on these findings, recommendations can be made on elements that are positively reviewed and subsequently negatively reviewed. 
@@ -52,6 +75,26 @@ Secondly, we also had to decide on the number of topics the model should conside
 
 
 The multiple plots in Appendix C.2 show the 5 most important words for each of the 7 topics. The first topic contains the words Disneyland, Hong, Kong, staff and variations of experience. Comments containing this topic share general experience of Disneyland in Hong Kong and its staff. The fifth topic is very similar, but uses the word of Disney more general instead of Disneyland and uses the word world instead of staff. This topic seems to be more focused on the brand Disney in general. The second topic describes Disneyland as a theme park. The third topic is focusing on attractions and general experiences such as waiting time in the queues and the food. The fourth topic is about the duration of the visit, about the tickets and passes and about the characters in the parade. The sixth topic is specifically focused on time, usually involving waiting time in lines and queues. The last topic contain words about children who visited Disneyland. As enjoy is an important word in this topic, is seem that kids are usually positive about the attractions, the food and their visit in general. 
+
+## Appendix A
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.show = "hold", out.width = "50%"}
+figure1 <- readRDS("Biplot12")
+figure2 <- readRDS("Biplot34")
+figure3 <- readRDS("groups12")
+figure4 <- readRDS("groups34")
+figure5 <- image_read("MDS.png")
+
+figure1 + ggtitle("Figure 1")
+figure2 + ggtitle("Figure 2")
+figure3 + ggtitle("Figure 3")
+figure4 + ggtitle("Figure 4")
+```
+
+Figure 5
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.show = "hold", out.width = "50%"}
+figure5 
+```
 
 
 ## Appendix B

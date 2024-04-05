@@ -1,0 +1,314 @@
+setwd("C:/Users/marij/OneDrive/Documenten/Data Science Master/Text Mining")
+
+# Load required libraries
+library(ggplot2)
+library(tokenizers)
+library(tibble)
+library(tidyverse)
+library(tidytext)
+library(SnowballC)
+library(tm)
+library(stringi)
+library(ggrepel)
+library("wordcloud")
+library("quanteda")
+library(smacof)
+library("ggfortify")
+library("ggthemes")
+library(factoextra)
+
+
+
+# Load data
+disney <- read.csv(file = "DisneylandReviews.csv", sep = ",", header = TRUE)
+
+# Inspect data
+str(disney)
+head(disney)
+disney$Rating <- as.factor(disney$Rating)
+disney$Branch <- as.factor(disney$Branch)
+summary(nchar(disney$Review_Text))
+
+# Remove error messages in text
+disney <- disney[nchar(disney$Review_Text) > 50, ]
+
+# Convert date to date object
+disney$Year_Month <- as.Date(paste0(disney$Year_Month, "-01"))
+
+Sys.setlocale('LC_ALL','C') # set aspects of the internationalization of the program
+
+# Replace numbers and certain characters
+disney$Review_Text <- as.character(disney$Review_Text) %>%
+                        tolower() %>%
+                          {gsub(":( |-|o)*\\("," SADSMILE ", .)} %>%        # Find :( or :-( or : ( or :o(
+                          {gsub(":( |-|o)*\\)"," HAPPYSMILE ", .)} %>%      # Find :) or :-) or : ) or :o)
+                          {gsub("(\"| |\\$)-+\\.-+"," NUMBER", .)} %>%      # Find numbers
+                          {gsub("([0-9]+:)*[0-9]+ *am"," TIME_AM", .)} %>%  # Find time AM
+                          {gsub("([0-9]+:)*[0-9]+ *pm"," TIME_PM", .)} %>%  # Find time PM
+                          {gsub("-+:-+","TIME", .)} %>%                     # Find general time
+                          {gsub("\\$ ?[0-9]*[\\.,]*[0-9]+"," DOLLARVALUE ", .)} %>%   # Find Dollar values
+                          {gsub("\\€ ?[0-9]*[\\.,]*[0-9]+"," EUROVALUE ", .)} %>%   # Find Euro values
+                          {gsub("[0-9]*[\\.,]*[0-9]+"," NUMBER ", .)} %>%  # Find remaining numbers
+                          {gsub("-"," ", .)} %>%                           # Remove all -
+                          {gsub("&"," and ", .)} %>%                       # Find general time
+                          {gsub("\"+"," ", .)} %>%                         # Remove all "
+                          {gsub("\\|+"," ", .)} %>%                        # Remove all |
+                          {gsub("_+"," ", .)} %>%                          # Remove all _
+                          {gsub(";+"," ", .)} %>%                          # Remove excess ;
+                          {gsub(" +"," ", .)} %>%                          # Remove excess spaces
+                          {gsub("\\.+","\\.", .)}                          # Remove excess .
+
+# Create word vector by splitting on spaces and punctuation
+review_words <- disney %>% unnest_tokens(word, Review_Text, to_lower = T)
+print("Number of words total: ")
+print(nrow(review_words)) # 5,537,502 words
+
+# Count how often each word occurs
+counts <- review_words %>%
+  count(word, sort = TRUE)
+print("Number of unique words: ")
+nrow(counts) # 75,365 unique words
+
+# Show top 50 words
+head(counts, 50) # Mostly stop words!
+
+# Show bottom 50 words
+tail(counts, 50)
+
+# One Dutch reviewer (who was quite unhappy)
+disney[grep(pattern = "zoeken", x = disney$Review_Text), ]
+
+# Visualisation of 25 most common words
+counts[1:25, ] %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n)) +
+  geom_col() + 
+  coord_flip() +
+  labs(x = NULL, y = "Number of occurrences") +
+  theme(text = element_text(size = 17)) +
+  ggtitle("Word frequency histogram")
+
+# Remove stop words
+data(stop_words)
+review_words_nostop <- review_words %>%
+  anti_join(stop_words)
+counts <- review_words_nostop %>%
+  count(word, sort = TRUE)
+
+print("Number of words without stop words")
+sum(counts$n)
+print("Number of unique words without stop words")
+print(nrow(counts))
+
+# Print most common word without stop words
+counts[1:20, ] %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n)) +
+  geom_col() +
+  labs(x = NULL, y = "Number of occurrences") +
+  coord_flip() +
+  ggtitle("Frequency histogram of words (no stop words)")
+
+# Clean + stem words
+#counts[900:1100, ]
+#run_slow <- F
+#if (run_slow) {
+  j <- 1
+  for (j in 1:nrow(disney)) {
+    stemmed_rev <- anti_join(disney[j, ] %>% unnest_tokens(word, Review_Text, drop = F, to_lower = T),
+                             stop_words)
+    stemmed_rev <- wordStem(stemmed_rev[, "word"], language = "porter")
+    disney[j, "Review_Text"] <- paste(stemmed_rev, collapse = " ")
+  }
+  save(disney, file = "disney_stemmed.RData")
+#}
+
+
+#cut text into words by splitting on spaces and punctuation
+review_words <- disney %>% unnest_tokens(word, Review_Text,to_lower=TRUE) 
+print("number of words")
+nrow(disney)
+
+#Count the number of times each word occurs
+counts <- review_words %>%count(word, sort=TRUE) # sort = TRUE for sorting in descending order of n. 
+print("number of unique words after stemming and without stop words")
+nrow(counts)
+
+
+## What are the most frequent words, after stemming?
+counts %>% 
+  mutate(word = reorder(word,n)) %>% 
+  top_n(20, word) %>%
+  ggplot(aes(word,n)) +  
+  geom_col() + 
+  labs(x = NULL, y = "Number of occurences") + 
+  coord_flip() + 
+  theme(text = element_text(size = 17)) + 
+  ggtitle("Word Frequency Histogram")
+
+counts %>% 
+  mutate(word = reorder(word,n)) %>% 
+  top_n(-20, word) %>%
+  ggplot(aes(word,n)) +  
+  geom_col() + 
+  labs(x = NULL, y = "Number of occurences") + 
+  coord_flip() + 
+  theme(text = element_text(size = 17)) + 
+  ggtitle("Word Frequency Histogram")
+
+
+### Remove most infrequent words from the data
+infrequent <- counts %>% filter(n<0.01*nrow(disney))
+toremove <- infrequent
+
+#if (run_slow) {
+  j<-1 
+  for (j in 1:nrow(disney)) {
+    stemmed_Review<-  anti_join((disney[j,] %>% unnest_tokens(word,Review_Text,to_lower=TRUE) ),toremove)
+    
+    disney[j,"Review_Text"]<- paste((stemmed_Review[,"word"]),collapse = " ")
+    
+  }
+  #saveRDS(disney,file="partially_cleaned_reviews.Rdata") 
+#} else {# Load partially cleaned reviews from data
+#}
+head(disney)
+
+
+
+### MDS plots
+disney_unique <- disney[!duplicated(disney$Review_ID), ]
+
+save(disney_unique, file = "disney_stemmed_new.RData")
+
+# Create a document term matrix (DTM) of the reviews 
+tokenized_reviews <- tokens(corpus(disney_unique, docid_field = "Review_ID", text_field = "Review_Text"))
+
+# Create a sparse feature co-occurrence matrix fcm(): measures co-occurrences 
+co_occurrence_matrix <- fcm(x = tokenized_reviews, context = "document", count = "frequency", tri=FALSE)
+
+# Create a matrix with number of documents with each word on the diagonal
+reviews_dfm <- dfm(tokenized_reviews) # get document frequency matrix
+counts <- colSums(as.matrix(reviews_dfm)) 
+co_occurrence_matrix <- as.matrix(co_occurrence_matrix)
+diag(co_occurrence_matrix) <- counts
+
+sortedcount <- counts%>% sort(decreasing=TRUE)
+sortednames <- names(sortedcount)
+
+# Create co-occurrence matrix showing first 15 rows and columns
+co_occurrence_matrix <- co_occurrence_matrix[sortednames,sortednames]
+co_occurrence_matrix[1:7,1:7]
+
+# Convert similarities to distances
+distances <- sim2diss(co_occurrence_matrix, method = "cooccurrence") 
+distances[1:20,1:7]
+
+# Run the routine that finds the best matching coordinates in a 2D mp given the distances
+MDS_map <- smacofSym(distances) # Transform similarity values to distances
+# Plot words in a map based on the distances
+ggplot(as.data.frame(MDS_map$conf), aes(D1, D2, label = rownames(MDS_map$conf))) +
+  geom_text(check_overlap = TRUE) + theme_minimal(base_size = 15) + xlab('') + ylab('') +
+  scale_y_continuous(breaks = NULL) + scale_x_continuous(breaks = NULL)
+# the conf element in the MDS output contains the coordinates with as names D1 and D2.
+
+### PCA
+
+# Cast the data frame to a TermDocumentMatrix (TDM)
+review_tdm <- disney_unique %>% unnest_tokens(word,Review_Text) %>%count(word,Review_ID,sort=TRUE) %>%ungroup()%>%cast_tdm(word,Review_ID,n)
+
+counts <- rowSums(as.matrix(review_tdm)) 
+sortedcount <- counts%>% sort(decreasing=TRUE)
+nwords<-200
+sortednames <- names(sortedcount[1:nwords])
+
+review_dtm <- t(review_tdm)
+
+pca_results <- prcomp(review_dtm, scale = FALSE, rank. = 40) # rank specifies maximum number of principal components
+pca_results_backup <- pca_results
+
+fviz_screeplot(pca_results,ncp=40)
+
+ncomp<-4
+
+j<-1 # For first dimension
+toplist <- abs(pca_results$rotation[,j]) %>% sort(decreasing=TRUE) %>% head(10)
+topwords <- (names(toplist)) # Save most important words
+for (j in 2:ncomp){
+  toplist <- abs(pca_results$rotation[,j]) %>% sort(decreasing=TRUE) %>% head(10)
+  topwords <-cbind( topwords , (names(toplist))) # Add most important words of the dimension
+}
+
+# Display
+topwords
+
+# Get factor loadings (relatedness) and do rotation to new coordinate system
+rawLoadings     <- pca_results$rotation[sortednames,1:ncomp] %*% diag(pca_results$sdev, ncomp, ncomp)
+rotated <- varimax(rawLoadings) # rotate loading matrix
+pca_results$rotation <- rotated$loadings 
+pca_results$x <- scale(pca_results$x[,1:ncomp]) %*% rotated$rotmat 
+
+j<-1 # For first dimension
+toplist <- abs(pca_results$rotation[,j]) %>% sort(decreasing=TRUE) %>% head(10)
+topwords <- (names(toplist)) # Save most important words
+for (j in 2:ncomp){
+  toplist <- abs(pca_results$rotation[,j]) %>% sort(decreasing=TRUE) %>% head(10)
+  topwords <-cbind( topwords , (names(toplist))) # Add most important words of the dimension
+}
+
+# Display
+topwords
+
+# Use smaller dataset: Keep only 200 reviews to plot
+pca_results_backup <- pca_results 
+pca_results_small <- pca_results
+pca_results_small$x <- pca_results_small$x[sample(nrow(pca_results_small$x), 200),] 
+pca_results <- pca_results_small
+pca_results <- pca_results_backup
+
+# Plot PCA results after rotation - variables
+axeslist <- c(1, 2)
+fviz_pca_var(pca_results, axes=axeslist 
+             ,geom.var = c("arrow", "text")
+             ,col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), # colors to use
+             repel = TRUE     # Avoid text overlapping
+)
+
+# Plot PCA results after rotation - individuals
+axeslist=c(1,2)
+fviz_pca_ind(pca_results, axes = axeslist,
+             col.ind = "cos2", # Color by the quality of representation
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),  # colors to use
+             repel = FALSE,     # text can be overlapping
+             #             geom = "point" # shows only points and no lables
+)
+
+
+# Plot PCA results in Biplot
+axeslist=c(3,4)
+biplot34 <- fviz_pca_biplot(pca_results, repel = TRUE, axes=axeslist,
+                col.ind = "cos2" # Color by the quality of representation
+                ,col.var = "contrib" # Color by contributions to the PC
+                ,geom = "point" # shows only points and no labels
+)
+
+saveRDS(biplot34, file = "Biplot34")
+
+# first restore full set of reviews
+pca_results_backup -> pca_results 
+pca_sample <- sample(nrow(pca_results$x), 500)
+pca_results$x <- pca_results$x[pca_sample,] 
+groups <- as.factor(disney_unique[pca_sample, 'Rating' ])
+groups_34 <- fviz_pca_ind(pca_results, axes=c(3,4), # Different dimensions
+             col.ind = groups, # color by groups
+             #             palette = c("#00AFBB",  "#FC4E07"),
+             addEllipses = TRUE, # Concentration ellipses (draws ellipses around the individuals)
+             ellipse.type = "confidence",
+             legend.title = "Groups",
+             repel = TRUE
+             ,               geom = "point" # shows only points and no labels
+)
+
+saveRDS(groups_34, file = "groups34")
+

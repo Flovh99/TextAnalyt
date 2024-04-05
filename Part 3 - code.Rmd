@@ -122,7 +122,7 @@ reviews_df$sentiment <- sentiment_by(reviews_df$Description,  amplifier.weight =
 
 Figure_2 <- ggplot(reviews_df, aes(x = sentiment, y = ..density..)) + theme_gdocs() +
   geom_histogram(binwidth = .25, fill = "darkred", colour = "grey", size = .2) + 
-  geom_density(size = 0.75)
+  geom_density(size = 0.75) + ggtitle("Figure 2: Sentiment Distribution")
 saveRDS(Figure_2, "Figure_2.rds")
 
 pos_comments <- subset(reviews_df$Description, reviews_df$sentiment > 0)
@@ -161,6 +161,7 @@ Figure_1 <- ggplot( ,aes(sentiment)) +
   geom_density(aes(fill = "Happy"),   data = positive, alpha = 0.5) +
   geom_density(aes(fill = "Unhappy"), data = negative, alpha = 0.5) +
   scale_colour_manual("Sentiment", values = c("green", "red"), aesthetics = "fill")
++ ggtitle("Figure 1: Rating Distribution")
 saveRDS(Figure_1, file = 'Figure_1.rds')
 
 
@@ -184,14 +185,14 @@ amplification.adj <- c("acute", "acutely", "certain", "certainly", "colossal", "
 d_polarity_negation <- polarity(reviews_df$Description, negators = negation.adj)
 Figure_3 <- ggplot(d_polarity_negation$all, aes(x = polarity, y = ..density..)) + theme_gdocs() +
   geom_histogram(binwidth = .25, fill = "darkred", colour = "grey", size = .2) + 
-  geom_density(size = 0.75)
+  geom_density(size = 0.75) + ggtitle("Figure 3: Adjusted Negators")
 saveRDS(Figure_3, file = "Figure_3.rds")
 
 # Adjusted amplification words, what happens with the identified sentiment?
 d_polarity_ampl <- polarity(reviews_df$Description, amplifiers = amplification.adj)
 Figure_4 <- ggplot(d_polarity_ampl$all, aes(x = polarity, y = ..density..)) + theme_gdocs() +
   geom_histogram(binwidth = .25, fill = "darkred", colour = "grey", size = .2) + 
-  geom_density(size = 0.75)
+  geom_density(size = 0.75) + ggtitle(Figure 4: Adjusted Amplifiers")
 saveRDS(Figure_4, file = 'Figure_4.rds')
 
 # Polarity with DEFAULT settings / complete lists 
@@ -232,9 +233,10 @@ all_tdm_matrix <- as.matrix(all_tdm)
 colnames(all_tdm_matrix) <- c('positive','negative')
 
 # Construct comparison cloud, use scaling of the polarity scores 
+png("Figure_5.png", width = 800, height = 600)
 Figure_5 <- comparison.cloud(all_tdm_matrix, max.words=25,
-                 colors=c('darkgreen','darkred'))
-saveRDS(Figure_5, file = 'Figure_5.rds')
+                 colors=c('darkgreen','darkred'), main = "Figure 5: Word Cloud of Polarity")
+dev.off()
 
 # Final results!
 # Compare the previous output to the polarity function where the negation words 
@@ -327,7 +329,9 @@ all.tdm <-TermDocumentMatrix(emotion.reviews,control=
 all.tdm.m <- as.matrix(all.tdm)
 reviews_df$emotions <- factor(reviews_df$emotions)
 colnames(all.tdm.m) <- levels(reviews_df$emotions)
-Figure_6 <- comparison.cloud(all.tdm.m, title.size = 1.5, title.bg.colors = "lightblue")
-saveRDS(Figure_6, file = 'Figure_6.rds')
+
+png("Figure_6.png", width = 800, height = 600)
+Figure_6 <- comparison.cloud(all.tdm.m, title.size = 1.5, title.bg.colors = "lightblue", main = "Word Cloud of Emotion Classification")
+dev.off()
 ```
 

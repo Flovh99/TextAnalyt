@@ -221,12 +221,6 @@ for (j in 2:ncomp){
 # Display
 topwords
 
-# Use smaller dataset: Keep only 200 reviews to plot
-pca_results_backup <- pca_results 
-pca_results_small <- pca_results
-pca_results_small$x <- pca_results_small$x[sample(nrow(pca_results_small$x), 200),] 
-pca_results <- pca_results_small
-#pca_results <- pca_results_backup
 
 # Plot PCA results after rotation - variables
 axeslist <- c(1, 2)

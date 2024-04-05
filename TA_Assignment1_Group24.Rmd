@@ -1,0 +1,76 @@
+---
+title: "Text Analytics Assignment 1: Disneyland"
+author: "Robbert Batenburg, Amber Dalhuisen, Floris van Haarst & Marijn van der Werff"
+date: "05-04-2024"
+output: 
+  pdf_document:
+    toc_depth: 2
+    number_sections: TRUE
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+# Introduction
+
+# Data
+For our analysis, we used a data set from [Kaggle](https://www.kaggle.com/datasets/arushchillar/disneyland-reviews) containing reviews on the Disneyland theme parks in Paris, California and Hong Kong posted on Tripadvisor. The data set contains 42,656 reviews, and additionally contains information on the year and month the review was posted, the location of the reviewer and which branch the review is about.
+
+## Preprocessing
+In order to prepare the data for analysis, several preprocessing steps were undertaken. Numbers and certain text elements such as times were replaced by placeholders. Stop words were removed and all words were stemmed to facilitate analysis. Any duplicate reviews were removed and very infrequent words were removed.
+
+# Visualisations
+
+# Sentiment Analysis
+Sentiment analysis is defined as the process of deriving the emotional intent of an author from text (Book). Sentiment and polarity scores can be used to analyze the comments that are made in positive or negative reviews. Based on these findings, recommendations can be made on elements that are positively reviewed and subsequently negatively reviewed. 
+
+The polarity function accounts for negation and amplifier words, which means words are not merely being classified as positive, e.g., 1, or negative, e.g., -1. When using this function, within each sentence the polarity word is identified. Taking a pool of the four previous and two following words, negations and amplifiers are identified. Amplifiers add a weight and negation words subtract weight. The raw polarity score is then divided by the square root of the total amount of words in the sentence, resulting in the overall sentiment of the sentence.
+
+To illustrate this, in Appendix B a total of four figures are shown. Figure 1 shows that there are more positive reviews, e.g., reviews with a rating higher than or equal to four, than negative reviews, e.g., reviews with a rating lower than or equal to two.  The density of the positive reviews lies as 0.1 compared to -0.1 for the negative reviews. Figure 2 shows the density of the reviews based on a sentiment analysis where no negation words or amplifiers are identified. This figure shows that the average sentiment of the reviews is around 0.2, which is slightly higher compared to the ratings. 
+
+To investigate how negations and amplifications affect the identified sentiment, the settings for the negation list and amplification list were adjusted. More accurately, the first five words from the negation list were used, with the goal of identifying what would happen if the list of negation words was much smaller. The results of this analysis are shown in Figure 3, where … . The same approach was used for amplifiers, where the first five words from the amplificiation words dataset were used. These results are shown in Figure 4, showing that …
+
+Based on these results, it was concluded that identifying more negation words results in a lower sentiment of the review and subsequently identifying more amplifiers results in a higher sentiment of the review. This leads to the final figure, namely Figure 5 that shows the sentiment word cloud of the scaled polarity score and Term Frequency Inverse Document Frequency (TFIDF) weighted TDM. If a word appears often in reviews, this leads to the conclusion that it is important. However, if a word appears in all reviews, it may not be very insightful. TFIDF therefore accounts for words that appear frequently, ultimately resulting in a word cloud with only insightful words. A distinction is made between positive and negative words. The negative word that was used most frequently is … , and the positive word that was used most frequently is … . 
+
+Some recommendations that can be drawn from this analysis are …
+
+Some limitations to this research are that sarcasm cannot easily be identified in the text. Furthermore, the dictionary … was used for this sentiment analysis but the analysis mainly applies to Disneyland in HongKong. This means that certain words could have a different meaning than is identified in this dictionary. 
+
+
+As an addition to this research, an emotion classification of the research was made. This analysis is based on Plutchik’s wheel of emotion that states eight emotions, namely anger, fear, sadness, disgust, surprise, anticipation, trust and joy. 
+
+# Latent topics
+
+
+## Appendix B
+```{r, echo = F, message = F, fig.show = "hold", out.width = "50%"}
+Figure_1 <- readRDS("Figure_1.rds")
+Figure_2 <- readRDS("Figure_2.rds")
+
+plot(Figure_1)
+plot(Figure_2)
+```
+
+```{r, echo = F, message = F, fig.show = "hold", out.width = "50%"}
+Figure_3 <- readRDS("Figure_3.rds")
+Figure_4 <- readRDS("Figure_4.rds")
+
+plot(Figure_3)
+plot(Figure_4)
+
+```
+
+```{r, echo = F, message = F, fig.show = "hold", out.width = "50%"}
+
+Figure_5 <- image_read("Figure_5.png")
+Figure_6 <- image_read("Figure_6.png")
+
+plot(Figure_5)
+plot(Figure_6)
+
+
+```
+
